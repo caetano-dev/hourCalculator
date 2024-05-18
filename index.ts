@@ -73,7 +73,7 @@ function calculateRemainingTime(totalWorkTime: string): string {
   const totalWorkTimeInMinutes = convertTimeToMinutes(totalWorkTime);
   const targetWorkTimeInMinutes = 6 * 60; // 6 hours in minutes
 
-  if (totalWorkTimeInMinutes >= targetWorkTimeInMinutes) return "00:00";
+  if (totalWorkTimeInMinutes >= targetWorkTimeInMinutes) return "Você já pode sair.";
 
   const remainingTimeInMinutes = targetWorkTimeInMinutes - totalWorkTimeInMinutes;
   const remainingHours = Math.floor(remainingTimeInMinutes / 60);
@@ -108,7 +108,12 @@ button.addEventListener("click", () => {
   const timestamps = parseInput(input.value);
   const totalWorkTime = calculateWorkTime(timestamps);
   const remainingTime = calculateRemainingTime(totalWorkTime);
-  const leaveTime = calculateLeaveTime(remainingTime);
-  const earlyLeaveTime = calculateEarlyLeaveTime(leaveTime);
-  result.innerHTML = `Você trabalhou ${totalWorkTime} horas hoje.<br>Faltam ${remainingTime} horas para completar 6 horas de trabalho.<br>Saída prevista às ${leaveTime}.<br>Se quiser sair mais cedo, pode sair às ${earlyLeaveTime}.`;
+
+  if (remainingTime === "Você já pode sair.") {
+    result.textContent = `Você trabalhou ${totalWorkTime} horas hoje.\n${remainingTime}`;
+  } else {
+    const leaveTime = calculateLeaveTime(remainingTime);
+    const earlyLeaveTime = calculateEarlyLeaveTime(leaveTime);
+    result.innerHTML = `Você trabalhou ${totalWorkTime} horas hoje.<br>Você tem ${remainingTime} horas restantes para completar 6 horas de trabalho.<br>O horário previsto de saída é ${leaveTime}.<br>Se você quiser sair mais cedo, pode sair às ${earlyLeaveTime}.`;
+  }
 });
