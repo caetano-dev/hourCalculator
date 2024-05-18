@@ -3,15 +3,11 @@ const button = document.getElementById("button") as HTMLButtonElement;
 const result = document.getElementById("result") as HTMLButtonElement;
 
 function parseInput(input: string): string[] {
-  let timestamps = input.split(" ");
-  timestamps = timestamps.filter(time => time >= "09:00");
-
-  if (timestamps.length === 0 || timestamps[0] > "09:00") {
-    timestamps.unshift("09:00");
-  }
-
+  let timestamps = input.split(" ").filter(time => time >= "09:00");
+  if (timestamps.length === 0 || timestamps[0] > "09:00") timestamps.unshift("09:00");
   return timestamps;
 }
+
 function calculateWorkTime(timestamps: string[]): string {
   if (timestamps.length % 2 !== 1) {
     const error = "Erro. O número de horários deve ser ímpar. Este erro também pode ser causado se você entrou antes das 09:00. Modifique o horário de entrada para 09:00."
@@ -19,114 +15,93 @@ function calculateWorkTime(timestamps: string[]): string {
     throw new Error(error);
   }
 
+  const [enterTimes, leaveTimes] = splitTimestamps(timestamps);
+  const totalMinutes = calculateTotalMinutes(enterTimes, leaveTimes);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return formatTime(hours, minutes);
+}
+
+function splitTimestamps(timestamps: string[]): [string[], string[]] {
   const enterTimes: string[] = [];
   const leaveTimes: string[] = [];
 
-  for (let i = 0; i < timestamps.length; i++) {
-    if (i % 2 === 0) {
-      enterTimes.push(timestamps[i]);
-    } else {
-      leaveTimes.push(timestamps[i]);
-    }
-  }
+  timestamps.forEach((timestamp, index) => {
+    if (index % 2 === 0) enterTimes.push(timestamp);
+    else leaveTimes.push(timestamp);
+  });
 
-  let totalMinutes = 0;
-
- const minArrayLength = Math.min(enterTimes.length, leaveTimes.length);
-
-for (let i = 0; i < minArrayLength; i++) {
-    const enterTime = enterTimes[i].split(":");
-    const leaveTime = leaveTimes[i].split(":");
-
-    const enterHours = parseInt(enterTime[0]);
-    const enterMinutes = parseInt(enterTime[1]);
-    const leaveHours = parseInt(leaveTime[0]);
-    const leaveMinutes = parseInt(leaveTime[1]);
-
-    const enterTimeInMinutes = enterHours * 60 + enterMinutes;
-    const leaveTimeInMinutes = leaveHours * 60 + leaveMinutes;
-
-    totalMinutes += leaveTimeInMinutes - enterTimeInMinutes;
+  return [enterTimes, leaveTimes];
 }
+
+function calculateTotalMinutes(enterTimes: string[], leaveTimes: string[]): number {
+  let totalMinutes = 0;
+  const minArrayLength = Math.min(enterTimes.length, leaveTimes.length);
+
+  for (let i = 0; i < minArrayLength; i++) {
+    const enterTimeInMinutes = convertTimeToMinutes(enterTimes[i]);
+    const leaveTimeInMinutes = convertTimeToMinutes(leaveTimes[i]);
+    totalMinutes += leaveTimeInMinutes - enterTimeInMinutes;
+  }
 
   const currentTime = new Date();
   const currentHours = currentTime.getHours();
   const currentMinutes = currentTime.getMinutes();
-
-  const lastEnterTime = enterTimes[enterTimes.length - 1].split(":");
-  const lastEnterHours = parseInt(lastEnterTime[0]);
-  const lastEnterMinutes = parseInt(lastEnterTime[1]);
-
-  const lastEnterTimeInMinutes = lastEnterHours * 60 + lastEnterMinutes;
+  const lastEnterTimeInMinutes = convertTimeToMinutes(enterTimes[enterTimes.length - 1]);
   const currentTimeInMinutes = currentHours * 60 + currentMinutes;
 
   totalMinutes += currentTimeInMinutes - lastEnterTimeInMinutes;
 
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+  return totalMinutes;
+}
 
+function convertTimeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function formatTime(hours: number, minutes: number): string {
   return `${padZero(hours)}:${padZero(minutes)}`;
+}
 
-  function padZero(value: number): string {
-    return value.toString().padStart(2, "0");
-  }
+function padZero(value: number): string {
+  return value.toString().padStart(2, "0");
 }
 
 function calculateRemainingTime(totalWorkTime: string): string {
-  const [totalHours, totalMinutes] = totalWorkTime.split(":").map(Number);
-  const totalWorkTimeInMinutes = totalHours * 60 + totalMinutes;
-
+  const totalWorkTimeInMinutes = convertTimeToMinutes(totalWorkTime);
   const targetWorkTimeInMinutes = 6 * 60; // 6 hours in minutes
 
-  if (totalWorkTimeInMinutes >= targetWorkTimeInMinutes) {
-    return "00:00";
-  }
+  if (totalWorkTimeInMinutes >= targetWorkTimeInMinutes) return "00:00";
 
-  const remainingTimeInMinutes =
-    targetWorkTimeInMinutes - totalWorkTimeInMinutes;
+  const remainingTimeInMinutes = targetWorkTimeInMinutes - totalWorkTimeInMinutes;
   const remainingHours = Math.floor(remainingTimeInMinutes / 60);
   const remainingMinutes = remainingTimeInMinutes % 60;
 
-  return `${padZero(remainingHours)}:${padZero(remainingMinutes)}`;
-
-  function padZero(value: number): string {
-    return value.toString().padStart(2, "0");
-  }
+  return formatTime(remainingHours, remainingMinutes);
 }
 
 function calculateLeaveTime(remainingTime: string): string {
-  const [remainingHours, remainingMinutes] = remainingTime.split(":").map(Number);
-  const remainingTimeInMinutes = remainingHours * 60 + remainingMinutes;
-
+  const remainingTimeInMinutes = convertTimeToMinutes(remainingTime);
   const currentTime = new Date();
   const currentHours = currentTime.getHours();
   const currentMinutes = currentTime.getMinutes();
   const currentTimeInMinutes = currentHours * 60 + currentMinutes;
-
   const leaveTimeInMinutes = currentTimeInMinutes + remainingTimeInMinutes;
   const leaveHours = Math.floor(leaveTimeInMinutes / 60);
   const leaveMinutes = leaveTimeInMinutes % 60;
 
-  return `${padZero(leaveHours)}:${padZero(leaveMinutes)}`;
-
-  function padZero(value: number): string {
-    return value.toString().padStart(2, "0");
-  }
+  return formatTime(leaveHours, leaveMinutes);
 }
 
 function calculateEarlyLeaveTime(leaveTime: string): string {
-  const [leaveHours, leaveMinutes] = leaveTime.split(":").map(Number);
-  const leaveTimeInMinutes = leaveHours * 60 + leaveMinutes;
-
+  const leaveTimeInMinutes = convertTimeToMinutes(leaveTime);
   const earlyLeaveTimeInMinutes = leaveTimeInMinutes - 30;
   const earlyLeaveHours = Math.floor(earlyLeaveTimeInMinutes / 60);
   const earlyLeaveMinutes = earlyLeaveTimeInMinutes % 60;
 
-  return `${padZero(earlyLeaveHours)}:${padZero(earlyLeaveMinutes)}`;
-
-  function padZero(value: number): string {
-    return value.toString().padStart(2, "0");
-  }
+  return formatTime(earlyLeaveHours, earlyLeaveMinutes);
 }
 
 button.addEventListener("click", () => {
